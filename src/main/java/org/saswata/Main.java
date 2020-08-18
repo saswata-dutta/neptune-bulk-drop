@@ -79,6 +79,7 @@ public class Main {
 
       long stop = Instant.now().toEpochMilli();
       System.out.println("duration," + (stop - start));
+      System.out.println("dropped," + edges.length);
     };
   }
 
@@ -90,6 +91,7 @@ public class Main {
 
       long stop = Instant.now().toEpochMilli();
       System.out.println("duration," + (stop - start));
+      System.out.println("dropped," + vertices.length);
     };
   }
 }

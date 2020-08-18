@@ -34,7 +34,8 @@ public class BatchExecutor implements AutoCloseable {
   private void execute() {
     if (batch.isEmpty()) return;
 
-    executorService.submit(() -> action.accept(batch.toArray()));
+    final Object[] items = batch.toArray();
+    executorService.submit(() -> action.accept(items));
     count += batch.size();
     System.out.println("progress," + count);
     batch.clear();
