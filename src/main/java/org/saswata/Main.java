@@ -16,7 +16,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
-
 public class Main {
   public static void main(String[] args) {
     final String neptune = args[0];
@@ -26,9 +25,10 @@ public class Main {
     final int POOL_SIZE = Integer.parseInt(args[4]); // num of threads
 
     final Cluster cluster = clusterProvider(neptune, POOL_SIZE);
-    final GraphTraversalSource g = graphProvider(cluster).
-        with(Tokens.ARGS_EVAL_TIMEOUT, TimeUnit.MINUTES.toMillis(5)).
-        withSideEffect("Neptune#repeatMode", "CHUNKED_DFS");
+    final GraphTraversalSource g =
+        graphProvider(cluster)
+            .with(Tokens.ARGS_EVAL_TIMEOUT, TimeUnit.MINUTES.toMillis(5))
+            .withSideEffect("Neptune#repeatMode", "CHUNKED_DFS");
 
     final Consumer<Object[]> action = itemType == 'V' ? dropVertices(g) : dropEdges(g);
     runSuite(bulkInputLoc, action, BATCH_SIZE, POOL_SIZE);
@@ -36,10 +36,11 @@ public class Main {
     cluster.close();
   }
 
-  static void runSuite(String bulkInputLoc, Consumer<Object[]> action, int BATCH_SIZE, int POOL_SIZE) {
+  static void runSuite(
+      String bulkInputLoc, Consumer<Object[]> action, int BATCH_SIZE, int POOL_SIZE) {
 
     try (Stream<String> in = Files.lines(Paths.get(bulkInputLoc));
-         BatchExecutor batchExecutor = new BatchExecutor(action, BATCH_SIZE, POOL_SIZE)) {
+        BatchExecutor batchExecutor = new BatchExecutor(action, BATCH_SIZE, POOL_SIZE)) {
 
       in.forEach(acc -> batchExecutor.submit(acc.trim()));
 
@@ -50,18 +51,19 @@ public class Main {
 
   static Cluster clusterProvider(String neptune, int POOL_SIZE) {
 
-    Cluster.Builder clusterBuilder = Cluster.build()
-        .addContactPoint(neptune)
-        .port(8182)
-        .enableSsl(true)
-        .channelizer(SigV4WebSocketChannelizer.class)
-        .serializer(Serializers.GRAPHBINARY_V1D0)
-        .maxInProcessPerConnection(1)
-        .minInProcessPerConnection(1)
-        .maxSimultaneousUsagePerConnection(1)
-        .minSimultaneousUsagePerConnection(1)
-        .minConnectionPoolSize(POOL_SIZE)
-        .maxConnectionPoolSize(POOL_SIZE);
+    Cluster.Builder clusterBuilder =
+        Cluster.build()
+            .addContactPoint(neptune)
+            .port(8182)
+            .enableSsl(true)
+            .channelizer(SigV4WebSocketChannelizer.class)
+            .serializer(Serializers.GRAPHBINARY_V1D0)
+            .maxInProcessPerConnection(1)
+            .minInProcessPerConnection(1)
+            .maxSimultaneousUsagePerConnection(1)
+            .minSimultaneousUsagePerConnection(1)
+            .minConnectionPoolSize(POOL_SIZE)
+            .maxConnectionPoolSize(POOL_SIZE);
 
     return clusterBuilder.create();
   }
@@ -72,26 +74,22 @@ public class Main {
   }
 
   static Consumer<Object[]> dropEdges(GraphTraversalSource g) {
-    return (Object[] edges) -> {
-      long start = Instant.now().toEpochMilli();
-
-      g.E(edges).drop().iterate();
-
-      long stop = Instant.now().toEpochMilli();
-      System.out.println("duration," + (stop - start));
-      System.out.println("dropped," + edges.length);
-    };
+    return dropIds((Object[] ids) -> g.E(ids).drop().iterate());
   }
 
-  static Consumer<Object[]> dropVertices(GraphTraversalSource g) {
-    return (Object[] vertices) -> {
+  static Consumer<Object[]> dropVertices(final GraphTraversalSource g) {
+    return dropIds((Object[] ids) -> g.V(ids).drop().iterate());
+  }
+
+  static Consumer<Object[]> dropIds(Consumer<Object[]> dropper) {
+    return (Object[] ids) -> {
       long start = Instant.now().toEpochMilli();
 
-      g.V(vertices).drop().iterate();
+      dropper.accept(ids);
 
       long stop = Instant.now().toEpochMilli();
       System.out.println("duration," + (stop - start));
-      System.out.println("dropped," + vertices.length);
+      System.out.println("dropped," + ids.length);
     };
   }
 }

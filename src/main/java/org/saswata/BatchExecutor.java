@@ -21,12 +21,17 @@ public class BatchExecutor implements AutoCloseable {
     batch = new ArrayList<>(BATCH_SIZE);
 
     // fixed thread pool
-    executorService = new ThreadPoolExecutor(pool_size, pool_size,
-        0L, TimeUnit.MILLISECONDS,
-        new ExecutorBlockingQueue<>(pool_size));
+    executorService =
+        new ThreadPoolExecutor(
+            pool_size,
+            pool_size,
+            0L,
+            TimeUnit.MILLISECONDS,
+            new ExecutorBlockingQueue<>(pool_size));
   }
 
   public void submit(String task) {
+    if (task == null || task.length() < 1) return;
     batch.add(task);
     if (batch.size() >= BATCH_SIZE) execute();
   }
